@@ -1,12 +1,14 @@
 # Peer Chat
 
-A WebRTC learning project for implementing real-time peer-to-peer communication in web browsers.
+🚀 A modern WebRTC learning project - Build real-time peer-to-peer communication from scratch using cutting-edge web technologies.
 
 ## Overview
 
-This project is a hands-on learning implementation of WebRTC (Web Real-Time Communication) technology. It demonstrates how to build real-time communication features like text chat, audio/video calling, and screen sharing directly between web browsers without requiring external servers for media relay.
+Dive deep into the world of real-time web communication! This hands-on project explores WebRTC (Web Real-Time Communication) technology, teaching you to build lightning-fast peer-to-peer applications. Create seamless text chat, crystal-clear audio/video calls, and powerful screen sharing - all running directly between browsers with zero external media servers.
 
 **Learning Focus**: Understanding WebRTC fundamentals, signaling protocols, peer-to-peer networking, and real-time communication patterns.
+
+> 🎥 **Inspired by**: [WebRTC Tutorial Video](https://www.youtube.com/watch?v=QsH8FL0952k) - Following modern WebRTC implementation patterns and best practices.
 
 ## Tech Stack
 

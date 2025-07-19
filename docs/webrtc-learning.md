@@ -2,6 +2,12 @@
 
 This document outlines the WebRTC concepts and learning objectives for the peer-chat project.
 
+## 🎯 Project Inspiration
+
+This project is inspired by practical WebRTC implementations and follows modern best practices for building real-time communication applications. The implementation approach is based on comprehensive WebRTC tutorials that demonstrate production-ready patterns.
+
+**Primary Reference**: [WebRTC Tutorial Video](https://www.youtube.com/watch?v=QsH8FL0952k) - A comprehensive guide to implementing WebRTC from scratch.
+
 ## What is WebRTC?
 
 WebRTC (Web Real-Time Communication) is a technology that enables real-time, peer-to-peer communication between web browsers without requiring plugins or external applications.
