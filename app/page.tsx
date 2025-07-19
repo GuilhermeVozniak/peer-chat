@@ -1,4 +1,5 @@
 import Image from 'next/image';
+import { Button } from '@/components/ui/button';
 
 export default function Home() {
   return (
@@ -49,6 +50,9 @@ export default function Home() {
           >
             Read our docs
           </a>
+        </div>
+        <div className='flex w-full items-center justify-center'>
+          <Button className='cursor-pointer'>Click me</Button>
         </div>
       </main>
       <footer className='row-start-3 flex flex-wrap items-center justify-center gap-[24px]'>

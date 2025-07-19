@@ -15,6 +15,7 @@ Dive deep into the world of real-time web communication! This hands-on project e
 - **Framework**: Next.js 15 (React 19)
 - **Language**: TypeScript
 - **Styling**: Tailwind CSS v4
+- **Components**: Shadcn/ui + Radix UI
 - **Code Quality**: ESLint + Prettier + Husky
 - **WebRTC**: Native browser APIs
 - **Signaling**: WebSocket (to be implemented)
@@ -56,6 +57,11 @@ pnpm lint:fix     # Auto-fix issues
 pnpm format       # Format code
 pnpm type-check   # TypeScript validation
 pnpm code-quality # Run all quality checks
+
+# UI Components (Shadcn/ui)
+pnpm dlx shadcn@latest add button    # Add button component
+pnpm dlx shadcn@latest add card      # Add card component
+pnpm dlx shadcn@latest add dialog    # Add dialog component
 ```
 
 ## Project Status
@@ -75,6 +81,7 @@ pnpm code-quality # Run all quality checks
 
 - **[Code Quality Setup](./docs/code-quality.md)** - ESLint, Prettier, Husky configuration
 - **[WebRTC Learning Guide](./docs/webrtc-learning.md)** - WebRTC concepts and implementation plan
+- **[Shadcn/ui Components](./docs/shadcn-ui.md)** - UI component library setup and usage
 
 ## Contributing
 
