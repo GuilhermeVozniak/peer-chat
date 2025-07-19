@@ -11,7 +11,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "type-check": "tsc --noEmit",
-    "code-quality": "npm run lint && npm run format:check && npm run type-check"
+    "code-quality": "npm run lint && npm run format:check && npm run type-check",
+    "prepare": "husky",
+    "lint-staged": "lint-staged"
   },
   "dependencies": {
     "next": "15.4.2",
@@ -31,6 +33,8 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-next": "^0.0.0",
     "eslint-plugin-tailwindcss": "^3.18.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.2",
     "prettier": "^3.6.2",
     "prettier-plugin-tailwindcss": "^0.6.14",
     "tailwindcss": "^4",

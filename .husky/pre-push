@@ -1,0 +1,14 @@
+#!/usr/bin/env sh
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "🔍 Running full code quality checks before push..."
+
+# Run all code quality checks
+npm run code-quality
+
+if [ $? -ne 0 ]; then
+    echo "❌ Code quality checks failed. Please fix the issues before pushing."
+    exit 1
+fi
+
+echo "✅ All code quality checks passed!" 

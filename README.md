@@ -44,6 +44,7 @@ This project is configured with comprehensive code quality tools to ensure the b
 - `npm run format:check` - Check if files are properly formatted
 - `npm run type-check` - Run TypeScript type checking
 - `npm run code-quality` - Run all code quality checks (lint, format, type-check)
+- `npm run lint-staged` - Run lint-staged (used by Git hooks)
 
 ### Code Quality Tools
 
@@ -68,6 +69,13 @@ This project is configured with comprehensive code quality tools to ensure the b
 - **Type Checking**: Comprehensive rules to catch type errors early
 - **Import Organization**: Consistent import patterns
 
+#### Lint-staged
+
+- **Staged Files Only**: Runs checks only on files that are staged for commit
+- **Performance**: Faster than running checks on the entire codebase
+- **Auto-fix**: Automatically fixes issues when possible
+- **Type Checking**: Quick TypeScript validation for staged files
+
 ### Editor Setup
 
 The project includes VS Code settings (`.vscode/settings.json`) that:
@@ -77,6 +85,30 @@ The project includes VS Code settings (`.vscode/settings.json`) that:
 - Organize imports automatically
 - Provide Tailwind CSS IntelliSense
 - Configure TypeScript preferences
+
+### Git Hooks (Husky)
+
+The project uses Husky to enforce code quality standards through Git hooks:
+
+- **Pre-commit Hook**: Runs lint-staged to check and fix staged files
+- **Commit-msg Hook**: Enforces conventional commit message format
+- **Pre-push Hook**: Runs full code quality checks before pushing
+
+#### Conventional Commits
+
+Commit messages must follow the conventional commit format:
+
+```
+<type>(<scope>): <description>
+```
+
+Types: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`, `revert`
+
+Examples:
+
+- `feat(auth): add login functionality`
+- `fix(ui): resolve button alignment issue`
+- `docs(readme): update installation instructions`
 
 ### Ignore Files
 
