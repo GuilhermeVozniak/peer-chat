@@ -1,4 +1,4 @@
-import { handleError } from './utils';
+import { handleError } from './utils.client';
 
 export const getVideoStream = async (): Promise<MediaStream | undefined> => {
   try {
