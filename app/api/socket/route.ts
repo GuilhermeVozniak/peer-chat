@@ -1,10 +1,7 @@
+import { RoomManager } from '@/lib/room-manager';
+import type { ExtendedWebSocket, WebSocketMessage } from '@/types/websocket';
 import { type NextRequest, NextResponse } from 'next/server';
 import { WebSocketServer } from 'ws';
-import { RoomManager } from '@/lib/room-manager';
-import type {
-  ExtendedWebSocket,
-  WebSocketMessage,
-} from '@/lib/types/websocket';
 
 // Create singleton WebSocket server and room manager
 let wss: WebSocketServer | null = null;

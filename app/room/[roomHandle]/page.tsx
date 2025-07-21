@@ -14,14 +14,8 @@ export default function MeetingRoom() {
   const roomHandle = params.roomHandle as string;
 
   // Use WebRTC hook for video conferencing
-  const {
-    localStream,
-    remoteStreams,
-    participants,
-    isConnected,
-    error,
-    participantId,
-  } = useWebRTC(roomHandle);
+  const { localStream, remoteStreams, isConnected, error, participantId } =
+    useWebRTC(roomHandle);
 
   // Verify room exists before initializing
   useEffect(() => {
@@ -223,20 +217,6 @@ export default function MeetingRoom() {
           </div>
         )}
       </main>
-
-      {/* Debug info - only in development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className='bg-card flex-shrink-0 border-t p-3'>
-          <div className='text-muted-foreground text-xs'>
-            <span className='mr-4'>ID: {participantId}</span>
-            <span className='mr-4'>Participants: {participants.length}</span>
-            <span className='mr-4'>Streams: {remoteStreams.length}</span>
-            <span>
-              Grid: {layout.gridCols} {layout.gridRows}
-            </span>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ import type {
   Room,
   RoomStateMessage,
   WebSocketMessage,
-} from './types/websocket';
+} from '../types/websocket';
 
 export class RoomManager {
   private rooms = new Map<string, Room>();
