@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useRoomValidation } from '@/hooks/useRoomValidation';
 import { zodResolver } from '@hookform/resolvers/zod';
 import React, { useTransition } from 'react';
@@ -101,11 +102,11 @@ export default function Home() {
 
     switch (state) {
       case 'error':
-        return `${baseClass} border-red-500 focus-visible:ring-red-500`;
+        return `${baseClass} border-destructive focus-visible:ring-destructive`;
       case 'success':
-        return `${baseClass} border-green-500 focus-visible:ring-green-500`;
+        return `${baseClass} border-green-500 focus-visible:ring-green-500 dark:border-green-400 dark:focus-visible:ring-green-400`;
       case 'loading':
-        return `${baseClass} border-blue-500 focus-visible:ring-blue-500`;
+        return `${baseClass} border-blue-500 focus-visible:ring-blue-500 dark:border-blue-400 dark:focus-visible:ring-blue-400`;
       default:
         return baseClass;
     }
@@ -124,18 +125,27 @@ export default function Home() {
     !isValid || isPending || !hasInput || validation.isValid !== true;
 
   return (
-    <main className='flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100'>
-      <div className='w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-xl'>
+    <main className='from-background to-muted flex min-h-screen items-center justify-center bg-gradient-to-br p-4'>
+      {/* Theme Toggle */}
+      <div className='absolute top-4 right-4'>
+        <ThemeToggle />
+      </div>
+
+      <div className='bg-card w-full max-w-md rounded-2xl border p-8 shadow-xl'>
         <div className='mb-8 text-center'>
-          <h1 className='mb-2 text-3xl font-bold text-gray-900'>Peer Chat</h1>
-          <p className='text-gray-600'>Create or join a video meeting room</p>
+          <h1 className='text-card-foreground mb-2 text-3xl font-bold'>
+            Peer Chat
+          </h1>
+          <p className='text-muted-foreground'>
+            Create or join a video meeting room
+          </p>
         </div>
 
         <form className='space-y-6'>
           <div>
             <label
               htmlFor='roomHandle'
-              className='mb-2 block text-sm font-medium text-gray-700'
+              className='text-card-foreground mb-2 block text-sm font-medium'
             >
               Room Handle
             </label>
@@ -150,19 +160,19 @@ export default function Home() {
               />
               {validation.isLoading && (
                 <div className='absolute top-1/2 right-3 -translate-y-1/2 transform'>
-                  <div className='h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent'></div>
+                  <div className='h-4 w-4 animate-spin rounded-full border-2 border-blue-500 border-t-transparent dark:border-blue-400'></div>
                 </div>
               )}
             </div>
             <p
               className={`mt-1 text-xs ${
                 getInputState() === 'error'
-                  ? 'text-red-600'
+                  ? 'text-destructive'
                   : getInputState() === 'success'
-                    ? 'text-green-600'
+                    ? 'text-green-600 dark:text-green-400'
                     : getInputState() === 'loading'
-                      ? 'text-blue-600'
-                      : 'text-gray-500'
+                      ? 'text-blue-600 dark:text-blue-400'
+                      : 'text-muted-foreground'
               }`}
             >
               {getInputMessage()}
@@ -211,14 +221,14 @@ export default function Home() {
 
             {/* Placeholder to maintain consistent height when buttons are hidden */}
             {!hasInput && (
-              <div className='py-4 text-center text-sm text-gray-400'>
+              <div className='text-muted-foreground py-4 text-center text-sm'>
                 Start typing to see available actions
               </div>
             )}
           </div>
         </form>
 
-        <div className='mt-6 text-center text-xs text-gray-500'>
+        <div className='text-muted-foreground mt-6 text-center text-xs'>
           <p>
             Creating a room will make you the host. Joining will connect you to
             an existing room.
