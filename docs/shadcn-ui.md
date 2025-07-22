@@ -285,48 +285,322 @@ Shadcn/ui components are built with accessibility in mind, but always test:
 
 ## Integration with WebRTC Project
 
-### Example: Video Call Controls
+### Actual Implementation: Peer Chat Components
+
+This section shows the real components we built for the Peer Chat application using Shadcn/ui.
+
+#### Components Actually Used
+
+```bash
+# Components we added and use in production
+pnpm dlx shadcn@latest add button    # MediaControls, Leave Meeting button
+pnpm dlx shadcn@latest add input     # Room name and user name inputs
+pnpm dlx shadcn@latest add select    # DeviceSelector dropdowns
+```
+
+#### Real Implementation: MediaControls Component
 
 ```tsx
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Mic, MicOff, Video, VideoOff } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
-function VideoCallControls({ isConnected, isMuted, isVideoOff }) {
+interface MediaControlsProps {
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
+  onToggleVideo: () => void;
+  onToggleAudio: () => void;
+  disabled?: boolean;
+}
+
+export function MediaControls({
+  isVideoEnabled,
+  isAudioEnabled,
+  onToggleVideo,
+  onToggleAudio,
+  disabled = false,
+}: MediaControlsProps) {
   return (
-    <Card className="p-4">
-      <div className="flex items-center gap-2 mb-4">
-        <Badge variant={isConnected ? "default" : "destructive"}>
-          {isConnected ? "Connected" : "Disconnected"}
-        </Badge>
-      </div>
-      
-      <div className="flex gap-2">
-        <Button 
-          variant={isMuted ? "destructive" : "default"}
-          onClick={toggleMute}
-        >
-          {isMuted ? "Unmute" : "Mute"}
-        </Button>
-        
-        <Button 
-          variant={isVideoOff ? "destructive" : "default"}
-          onClick={toggleVideo}
-        >
-          {isVideoOff ? "Turn On Video" : "Turn Off Video"}
-        </Button>
-        
-        <Button 
-          variant="destructive" 
-          onClick={endCall}
-        >
-          End Call
-        </Button>
-      </div>
-    </Card>
-  )
+    <div className='flex items-center space-x-2'>
+      {/* Audio Toggle */}
+      <Button
+        onClick={onToggleAudio}
+        variant={isAudioEnabled ? 'outline' : 'destructive'}
+        size='sm'
+        disabled={disabled}
+        aria-label={isAudioEnabled ? 'Mute microphone' : 'Unmute microphone'}
+      >
+        {isAudioEnabled ? (
+          <Mic className='h-4 w-4' />
+        ) : (
+          <MicOff className='h-4 w-4' />
+        )}
+      </Button>
+
+      {/* Video Toggle */}
+      <Button
+        onClick={onToggleVideo}
+        variant={isVideoEnabled ? 'outline' : 'destructive'}
+        size='sm'
+        disabled={disabled}
+        aria-label={isVideoEnabled ? 'Turn off camera' : 'Turn on camera'}
+      >
+        {isVideoEnabled ? (
+          <Video className='h-4 w-4' />
+        ) : (
+          <VideoOff className='h-4 w-4' />
+        )}
+      </Button>
+    </div>
+  );
 }
 ```
+
+#### Real Implementation: DeviceSelector Component
+
+```tsx
+import { Camera, Mic } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { MediaDeviceInfo } from '@/lib/video.client';
+
+interface DeviceSelectorProps {
+  devices: MediaDeviceInfo[];
+  selectedDevice: string | null;
+  onDeviceChange: (deviceId: string) => void;
+  type: 'video' | 'audio';
+  disabled?: boolean;
+}
+
+export function DeviceSelector({
+  devices,
+  selectedDevice,
+  onDeviceChange,
+  type,
+  disabled = false,
+}: DeviceSelectorProps) {
+  const Icon = type === 'video' ? Camera : Mic;
+  const placeholder = type === 'video' ? 'Select camera' : 'Select microphone';
+
+  if (devices.length === 0) {
+    return (
+      <div className='text-muted-foreground flex items-center space-x-2'>
+        <Icon className='h-4 w-4' />
+        <span className='text-sm'>No {type === 'video' ? 'cameras' : 'microphones'} found</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className='flex items-center space-x-2'>
+      <Icon className='text-muted-foreground h-4 w-4' />
+      <Select
+        value={selectedDevice ?? undefined}
+        onValueChange={onDeviceChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className='w-48'>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {devices.map((device) => (
+            <SelectItem key={device.deviceId} value={device.deviceId}>
+              {device.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+}
+```
+
+#### Real Implementation: Meeting Room Layout
+
+```tsx
+// How we actually use these components in the meeting room
+export default function MeetingRoom() {
+  const {
+    // ... other WebRTC state
+    isVideoEnabled,
+    isAudioEnabled,
+    toggleVideo,
+    toggleAudio,
+    videoDevices,
+    audioDevices,
+    selectedVideoDevice,
+    selectedAudioDevice,
+    switchVideoDevice,
+    switchAudioDevice,
+    localStream,
+    leaveRoom,
+  } = useWebRTC(roomHandle);
+
+  return (
+    <div className='flex h-screen flex-col'>
+      {/* Header and main content */}
+      
+      {/* Footer with actual controls */}
+      <footer className='bg-card flex-shrink-0 border-t p-4'>
+        <div className='flex items-center justify-between'>
+          {/* Left side controls */}
+          <div className='flex items-center space-x-4'>
+            {/* Media Controls */}
+            <MediaControls
+              isVideoEnabled={isVideoEnabled}
+              isAudioEnabled={isAudioEnabled}
+              onToggleVideo={toggleVideo}
+              onToggleAudio={toggleAudio}
+              disabled={!localStream}
+            />
+
+            {/* Visual Separator */}
+            <div className='h-6 w-px bg-border'></div>
+
+            {/* Device Controls */}
+            <DeviceSelector
+              devices={videoDevices}
+              selectedDevice={selectedVideoDevice}
+              onDeviceChange={switchVideoDevice}
+              type='video'
+              disabled={!localStream}
+            />
+            <DeviceSelector
+              devices={audioDevices}
+              selectedDevice={selectedAudioDevice}
+              onDeviceChange={switchAudioDevice}
+              type='audio'
+              disabled={!localStream}
+            />
+          </div>
+
+          {/* Leave Meeting Button */}
+          <Button
+            onClick={leaveRoom}
+            variant='destructive'
+            className='ml-4'
+          >
+            Leave Meeting
+          </Button>
+        </div>
+      </footer>
+    </div>
+  );
+}
+```
+
+#### Real Implementation: Form Components
+
+```tsx
+// Home page form using Input component
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+
+export default function HomePage() {
+  return (
+    <form className='space-y-6'>
+      {/* Name Input */}
+      <div>
+        <label htmlFor='name' className='text-card-foreground mb-2 block text-sm font-medium'>
+          Your Name (Optional)
+        </label>
+        <Input 
+          id='name' 
+          type='text' 
+          placeholder='Enter your name' 
+          className='w-full transition-colors' 
+        />
+        <p className='text-muted-foreground mt-1 text-xs'>
+          Leave empty to join as a guest
+        </p>
+      </div>
+
+      {/* Room Handle Input */}
+      <div>
+        <label htmlFor='roomHandle' className='text-card-foreground mb-2 block text-sm font-medium'>
+          Room Name
+        </label>
+        <Input 
+          id='roomHandle' 
+          type='text' 
+          placeholder='Enter room name' 
+          className='w-full transition-colors' 
+        />
+      </div>
+
+      {/* Action Buttons */}
+      <div className='flex gap-4'>
+        <Button type='submit' className='flex-1'>
+          Create Room
+        </Button>
+        <Button type='button' variant='outline' className='flex-1'>
+          Join Room
+        </Button>
+      </div>
+    </form>
+  );
+}
+```
+
+### Component Usage Summary
+
+#### Production Components Used
+
+1. **Button Component**
+   - MediaControls (mute/unmute, camera on/off)
+   - Leave Meeting button
+   - Create/Join Room buttons
+   - Variants: `outline`, `destructive`, `default`
+
+2. **Input Component**
+   - User name input (optional)
+   - Room name input
+   - Form validation integration
+
+3. **Select Component**
+   - Camera device selection
+   - Microphone device selection
+   - Real-time device switching
+
+#### Key Implementation Patterns
+
+1. **Accessibility First**
+   ```tsx
+   <Button
+     aria-label={isAudioEnabled ? 'Mute microphone' : 'Unmute microphone'}
+     onClick={onToggleAudio}
+   >
+     {isAudioEnabled ? <Mic /> : <MicOff />}
+   </Button>
+   ```
+
+2. **Conditional Styling**
+   ```tsx
+   <Button
+     variant={isVideoEnabled ? 'outline' : 'destructive'}
+     onClick={onToggleVideo}
+   >
+     {isVideoEnabled ? <Video /> : <VideoOff />}
+   </Button>
+   ```
+
+3. **Real-time State Management**
+   ```tsx
+   <Select
+     value={selectedDevice ?? undefined}
+     onValueChange={onDeviceChange}
+     disabled={!localStream}
+   >
+   ```
+
+4. **Empty State Handling**
+   ```tsx
+   {devices.length === 0 ? (
+     <div className='text-muted-foreground'>No devices found</div>
+   ) : (
+     <Select>...</Select>
+   )}
+   ```
+
+This real implementation demonstrates how Shadcn/ui components integrate seamlessly with WebRTC functionality to create a professional video calling interface.
 
 ## Useful Commands
 

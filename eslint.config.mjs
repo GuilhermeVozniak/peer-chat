@@ -22,6 +22,7 @@ export default [
       '*.config.js',
       '*.config.mjs',
       '*.config.ts',
+      'components/ui/**', // shadcn-ui components
     ],
   },
 
