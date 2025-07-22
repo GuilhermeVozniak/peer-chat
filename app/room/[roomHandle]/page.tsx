@@ -3,19 +3,48 @@
 import { Video } from '@/components/common/Video';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useWebRTC } from '@/hooks/useWebRTC';
-import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
 export default function MeetingRoom() {
   const [roomExists, setRoomExists] = useState<boolean | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string>('You');
   const params = useParams();
   const router = useRouter();
   const roomHandle = params.roomHandle as string;
 
   // Use WebRTC hook for video conferencing
-  const { localStream, remoteStreams, isConnected, error, participantId } =
-    useWebRTC(roomHandle);
+  const {
+    localStream,
+    remoteStreams,
+    isConnected,
+    error,
+    participantId,
+    participants,
+  } = useWebRTC(roomHandle);
+
+  // Get current user's name from sessionStorage
+  useEffect(() => {
+    const userName = sessionStorage.getItem('userName');
+    if (userName?.trim()) {
+      setCurrentUserName(userName.trim());
+    } else {
+      // Find current user in participants list to get their assigned guest name
+      const currentParticipant = participants.find(
+        (p) => p.id === participantId,
+      );
+      if (currentParticipant?.name) {
+        setCurrentUserName(currentParticipant.name);
+      }
+    }
+  }, [participantId, participants]);
+
+  // Helper function to get participant name by ID
+  const getParticipantName = (participantId: string): string => {
+    const participant = participants.find((p) => p.id === participantId);
+    return participant?.name ?? 'Unknown';
+  };
 
   // Verify room exists before initializing
   useEffect(() => {
@@ -154,7 +183,7 @@ export default function MeetingRoom() {
               <div className='bg-muted relative aspect-video w-full overflow-hidden rounded-lg shadow-lg'>
                 <Video id={participantId} stream={localStream} />
                 <div className='absolute bottom-4 left-4 rounded bg-black/70 px-3 py-1 text-white'>
-                  You
+                  {currentUserName}
                 </div>
               </div>
               <div className='mt-6 text-center'>
@@ -178,14 +207,14 @@ export default function MeetingRoom() {
               <div className='bg-muted relative overflow-hidden rounded-lg shadow-lg'>
                 <Video id={participantId} stream={localStream} />
                 <div className='absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white'>
-                  You
+                  {currentUserName}
                 </div>
               </div>
 
               {/* Remote videos */}
               {remoteStreams
                 .slice(0, layout.maxParticipants - 1)
-                .map((remoteStream, index) => (
+                .map((remoteStream) => (
                   <div
                     key={remoteStream.participantId}
                     className='bg-muted relative overflow-hidden rounded-lg shadow-lg'
@@ -195,7 +224,7 @@ export default function MeetingRoom() {
                       stream={remoteStream.stream}
                     />
                     <div className='absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white'>
-                      Participant {index + 1}
+                      {getParticipantName(remoteStream.participantId)}
                     </div>
                   </div>
                 ))}

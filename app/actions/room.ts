@@ -1,18 +1,15 @@
 'use server';
 
-import { redirect } from 'next/navigation';
-import { headers } from 'next/headers';
 import { generateUserId } from '@/lib/utils.server';
+import { redirect } from 'next/navigation';
 
-// Helper functions
-async function getBaseUrl(): Promise<string> {
-  const headersList = await headers();
-  const host = headersList.get('host') ?? 'localhost:3000';
-  const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-  return `${protocol}://${host}`;
+function getBaseUrl(): string {
+  return process.env.NODE_ENV === 'production'
+    ? (process.env.NEXT_PUBLIC_BASE_URL ?? 'https://localhost:3000')
+    : 'http://localhost:3000';
 }
 
-export async function createRoomAction(roomHandle: string) {
+export async function createRoomAction(roomHandle: string, _name?: string) {
   const userId = generateUserId();
 
   if (!roomHandle || roomHandle.trim() === '') {
@@ -20,7 +17,7 @@ export async function createRoomAction(roomHandle: string) {
   }
 
   try {
-    const response = await fetch(`${await getBaseUrl()}/api/room`, {
+    const response = await fetch(`${getBaseUrl()}/api/room`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -49,14 +46,14 @@ export async function createRoomAction(roomHandle: string) {
   }
 }
 
-export async function joinRoomAction(roomHandle: string) {
+export async function joinRoomAction(roomHandle: string, _name?: string) {
   if (!roomHandle || roomHandle.trim() === '') {
     throw new Error('Room handle is required');
   }
 
   try {
     const response = await fetch(
-      `${await getBaseUrl()}/api/room?roomHandle=${encodeURIComponent(roomHandle.trim())}`,
+      `${getBaseUrl()}/api/room?roomHandle=${encodeURIComponent(roomHandle.trim())}`,
     );
 
     if (!response.ok) {

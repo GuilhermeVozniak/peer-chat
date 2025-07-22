@@ -11,12 +11,7 @@ import {
   closePeerConnection,
   type PeerConnectionCallbacks,
 } from '@/lib/webrtc.client';
-
-export interface Participant {
-  id: string;
-  roomHandle: string;
-  joinedAt: Date;
-}
+import type { Participant } from '@/types/websocket';
 
 export interface RemoteStream {
   participantId: string;
@@ -31,7 +26,8 @@ export interface WebRTCState {
   error: string | null;
 }
 
-export interface WebSocketMessage {
+// Simplified WebSocket message interface for internal use
+export interface InternalWebSocketMessage {
   type: string;
   participantId: string;
   roomHandle: string;
@@ -223,13 +219,18 @@ export function useWebRTC(roomHandle: string) {
     [],
   );
 
-  // Initialize WebSocket connection
+  // Initialize WebSocket connection and join room
   const initializeWebSocket = useCallback(() => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       return; // Already connected
     }
 
     participantIdRef.current = generateParticipantId();
+
+    // Get user name from sessionStorage
+    const userName =
+      typeof window !== 'undefined' ? sessionStorage.getItem('userName') : null;
+
     // Connect to WebSocket server on port 8080
     const ws = new WebSocket('ws://localhost:8080');
     wsRef.current = ws;
@@ -238,20 +239,33 @@ export function useWebRTC(roomHandle: string) {
       console.log('WebSocket connected');
       setState((prev) => ({ ...prev, isConnected: true, error: null }));
 
-      // Join the room
-      ws.send(
-        JSON.stringify({
-          type: 'join-room',
-          participantId: participantIdRef.current,
-          roomHandle,
-          timestamp: Date.now(),
-        }),
-      );
+      // Join the room with optional name
+      const joinMessage: {
+        type: 'join-room';
+        participantId: string;
+        roomHandle: string;
+        timestamp: number;
+        name?: string;
+      } = {
+        type: 'join-room',
+        participantId: participantIdRef.current,
+        roomHandle,
+        timestamp: Date.now(),
+      };
+
+      // Add name to message if available
+      if (userName?.trim()) {
+        joinMessage.name = userName.trim();
+      }
+
+      ws.send(JSON.stringify(joinMessage));
     };
 
     ws.onmessage = async (event) => {
       try {
-        const message = parseJson<WebSocketMessage>(event.data as string);
+        const message = parseJson<InternalWebSocketMessage>(
+          event.data as string,
+        );
         if (message) {
           await handleWebSocketMessage(message);
         }
@@ -273,7 +287,7 @@ export function useWebRTC(roomHandle: string) {
 
   // Handle WebSocket messages
   const handleWebSocketMessage = useCallback(
-    async (message: WebSocketMessage) => {
+    async (message: InternalWebSocketMessage) => {
       console.log('Received WebSocket message:', message.type);
 
       switch (message.type) {

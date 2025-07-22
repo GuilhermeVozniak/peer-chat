@@ -21,6 +21,11 @@ const roomFormSchema = z.object({
       /^[a-zA-Z0-9-_]+$/,
       'Room handle can only contain letters, numbers, hyphens, and underscores',
     ),
+  name: z
+    .string()
+    .max(30, 'Name must be less than 30 characters')
+    .optional()
+    .or(z.literal('')),
 });
 
 type RoomFormData = z.infer<typeof roomFormSchema>;
@@ -52,7 +57,14 @@ export default function Home() {
   const handleCreateRoom = (data: RoomFormData) => {
     startTransition(async () => {
       try {
-        await createRoomAction(data.roomHandle);
+        // Store user name in sessionStorage if provided
+        if (data.name?.trim()) {
+          sessionStorage.setItem('userName', data.name.trim());
+        } else {
+          sessionStorage.removeItem('userName');
+        }
+
+        await createRoomAction(data.roomHandle, data.name);
       } catch (error) {
         if (
           error instanceof Error &&
@@ -67,7 +79,14 @@ export default function Home() {
   const handleJoinRoom = (data: RoomFormData) => {
     startTransition(async () => {
       try {
-        await joinRoomAction(data.roomHandle);
+        // Store user name in sessionStorage if provided
+        if (data.name?.trim()) {
+          sessionStorage.setItem('userName', data.name.trim());
+        } else {
+          sessionStorage.removeItem('userName');
+        }
+
+        await joinRoomAction(data.roomHandle, data.name);
       } catch (error) {
         if (
           error instanceof Error &&
@@ -142,6 +161,31 @@ export default function Home() {
         </div>
 
         <form className='space-y-6'>
+          <div>
+            <label
+              htmlFor='name'
+              className='text-card-foreground mb-2 block text-sm font-medium'
+            >
+              Your Name (Optional)
+            </label>
+            <Input
+              id='name'
+              {...register('name')}
+              type='text'
+              placeholder='Enter your name'
+              className='w-full transition-colors'
+              disabled={isPending}
+            />
+            {errors.name && (
+              <p className='text-destructive mt-1 text-xs'>
+                {errors.name.message}
+              </p>
+            )}
+            <p className='text-muted-foreground mt-1 text-xs'>
+              Leave empty to join as a guest
+            </p>
+          </div>
+
           <div>
             <label
               htmlFor='roomHandle'

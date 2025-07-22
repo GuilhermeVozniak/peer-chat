@@ -19,6 +19,7 @@ export class RoomManager {
     ws: ExtendedWebSocket,
     roomHandle: string,
     participantId: string,
+    name?: string,
   ): void {
     try {
       // Get or create room
@@ -33,9 +34,14 @@ export class RoomManager {
       const room = this.rooms.get(roomHandle);
       if (!room) return;
 
+      // Generate name if not provided (Guest 1, Guest 2, etc.)
+      let participantName = name?.trim();
+      participantName ??= this.generateGuestName(roomHandle);
+
       // Create participant
       const participant: Participant = {
         id: participantId,
+        name: participantName,
         roomHandle,
         joinedAt: new Date(),
       };
@@ -47,9 +53,12 @@ export class RoomManager {
       // Update WebSocket with participant info
       ws.participantId = participantId;
       ws.roomHandle = roomHandle;
+      ws.name = participantName;
       ws.isAlive = true;
 
-      console.log(`Participant ${participantId} joined room ${roomHandle}`);
+      console.log(
+        `Participant ${participantId} (${participantName}) joined room ${roomHandle}`,
+      );
 
       // Send current room state to the new participant
       this.sendRoomState(ws, roomHandle);
@@ -74,6 +83,33 @@ export class RoomManager {
         error instanceof Error ? error.message : 'Unknown error',
       );
     }
+  }
+
+  // Generate guest name for participants without a name
+  private generateGuestName(roomHandle: string): string {
+    const room = this.rooms.get(roomHandle);
+    if (!room) return 'Guest 1';
+
+    // Count existing guests to determine next guest number
+    const existingParticipants = Array.from(room.participants.values());
+    const guestNames = existingParticipants
+      .map((p) => p.name)
+      .filter((name) => name.startsWith('Guest '))
+      .map((name) => parseInt(name.replace('Guest ', ''), 10))
+      .filter((num) => !isNaN(num))
+      .sort((a, b) => a - b);
+
+    // Find the next available guest number
+    let guestNumber = 1;
+    for (const num of guestNames) {
+      if (num === guestNumber) {
+        guestNumber++;
+      } else {
+        break;
+      }
+    }
+
+    return `Guest ${guestNumber.toString()}`;
   }
 
   // Remove a participant from a room

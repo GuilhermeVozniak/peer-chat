@@ -3,6 +3,7 @@ import type { WebSocket } from 'ws';
 
 export interface Participant {
   id: string;
+  name: string;
   roomHandle: string;
   joinedAt: Date;
 }
@@ -24,6 +25,7 @@ export interface BaseMessage {
 // Room management messages
 export interface JoinRoomMessage extends BaseMessage {
   type: 'join-room';
+  name?: string; // Optional user name
 }
 
 export interface LeaveRoomMessage extends BaseMessage {
@@ -87,5 +89,6 @@ export type WebSocketMessage =
 export interface ExtendedWebSocket extends WebSocket {
   participantId?: string;
   roomHandle?: string;
+  name?: string;
   isAlive?: boolean;
 }
