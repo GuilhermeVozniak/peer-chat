@@ -1,17 +1,18 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { getVideoStream } from '@/lib/video.client';
-import { parseJson } from '../lib/utils.client';
+import { getVideoStream, type StreamConstraints } from '@/lib/video.client';
 import {
-  createEnhancedPeerConnection,
-  addLocalStreamTracks,
-  createOfferWithLocalDescription,
-  createAnswerWithLocalDescription,
-  setRemoteDescription,
   addIceCandidate,
+  addLocalStreamTracks,
   closePeerConnection,
+  createAnswerWithLocalDescription,
+  createEnhancedPeerConnection,
+  createOfferWithLocalDescription,
+  setRemoteDescription,
   type PeerConnectionCallbacks,
 } from '@/lib/webrtc.client';
 import type { Participant } from '@/types/websocket';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { parseJson } from '../lib/utils';
+import { useMediaDevices } from './useMediaDevices';
 
 export interface RemoteStream {
   participantId: string;
@@ -24,6 +25,8 @@ export interface WebRTCState {
   participants: Participant[];
   isConnected: boolean;
   error: string | null;
+  isVideoEnabled: boolean;
+  isAudioEnabled: boolean;
 }
 
 // Simplified WebSocket message interface for internal use
@@ -49,6 +52,8 @@ export function useWebRTC(roomHandle: string) {
     participants: [],
     isConnected: false,
     error: null,
+    isVideoEnabled: true,
+    isAudioEnabled: true,
   });
 
   const wsRef = useRef<WebSocket | null>(null);
@@ -56,18 +61,59 @@ export function useWebRTC(roomHandle: string) {
   const participantIdRef = useRef<string>('');
   const localStreamRef = useRef<MediaStream | null>(null);
 
+  // Use media devices hook
+  const {
+    videoDevices,
+    audioDevices,
+    selectedVideoDevice,
+    selectedAudioDevice,
+    setSelectedVideoDevice,
+    setSelectedAudioDevice,
+    isLoading: devicesLoading,
+    error: devicesError,
+    refreshDevices,
+  } = useMediaDevices();
+
   // Generate unique participant ID
   const generateParticipantId = useCallback(() => {
     return `participant_${Date.now().toString()}_${Math.random().toString(36).substring(2, 9)}`;
   }, []);
 
-  // Initialize local video stream
+  // Initialize local video stream with device constraints
   const initializeLocalStream = useCallback(async () => {
     try {
-      const stream = await getVideoStream();
+      const constraints: StreamConstraints = {
+        videoDeviceId: selectedVideoDevice ?? undefined,
+        audioDeviceId: selectedAudioDevice ?? undefined,
+        video: true,
+        audio: true,
+      };
+
+      const stream = await getVideoStream(constraints);
       if (stream) {
+        // Stop previous stream if exists
+        if (localStreamRef.current) {
+          localStreamRef.current.getTracks().forEach((track) => {
+            track.stop();
+          });
+        }
+
         localStreamRef.current = stream;
         setState((prev) => ({ ...prev, localStream: stream, error: null }));
+
+        // Update peer connections with new stream
+        peerConnectionsRef.current.forEach((peerConnection) => {
+          const senders = peerConnection.getSenders();
+          stream.getTracks().forEach((track) => {
+            const sender = senders.find((s) => s.track?.kind === track.kind);
+            if (sender) {
+              sender.replaceTrack(track).catch(console.error);
+            } else {
+              peerConnection.addTrack(track, stream);
+            }
+          });
+        });
+
         return stream;
       } else {
         throw new Error('Failed to get video stream');
@@ -81,7 +127,27 @@ export function useWebRTC(roomHandle: string) {
       }));
       return null;
     }
-  }, []);
+  }, [selectedVideoDevice, selectedAudioDevice]);
+
+  // Switch video device
+  const switchVideoDevice = useCallback(
+    async (deviceId: string) => {
+      setSelectedVideoDevice(deviceId);
+      // Re-initialize stream with new device
+      await initializeLocalStream();
+    },
+    [setSelectedVideoDevice, initializeLocalStream],
+  );
+
+  // Switch audio device
+  const switchAudioDevice = useCallback(
+    async (deviceId: string) => {
+      setSelectedAudioDevice(deviceId);
+      // Re-initialize stream with new device
+      await initializeLocalStream();
+    },
+    [setSelectedAudioDevice, initializeLocalStream],
+  );
 
   // Create peer connection for a specific participant using enhanced utilities
   const createPeerConnection = useCallback(
@@ -456,9 +522,56 @@ export function useWebRTC(roomHandle: string) {
     };
   }, [roomHandle, initializeLocalStream, initializeWebSocket, leaveRoom]);
 
+  // Toggle video on/off
+  const toggleVideo = useCallback(() => {
+    setState((prev) => {
+      const newVideoEnabled = !prev.isVideoEnabled;
+
+      // Update local stream video track
+      if (localStreamRef.current) {
+        const videoTracks = localStreamRef.current.getVideoTracks();
+        videoTracks.forEach((track) => {
+          track.enabled = newVideoEnabled;
+        });
+      }
+
+      return { ...prev, isVideoEnabled: newVideoEnabled };
+    });
+  }, []);
+
+  // Toggle audio on/off
+  const toggleAudio = useCallback(() => {
+    setState((prev) => {
+      const newAudioEnabled = !prev.isAudioEnabled;
+
+      // Update local stream audio track
+      if (localStreamRef.current) {
+        const audioTracks = localStreamRef.current.getAudioTracks();
+        audioTracks.forEach((track) => {
+          track.enabled = newAudioEnabled;
+        });
+      }
+
+      return { ...prev, isAudioEnabled: newAudioEnabled };
+    });
+  }, []);
+
   return {
     ...state,
     participantId: participantIdRef.current,
     leaveRoom,
+    // Device management
+    videoDevices,
+    audioDevices,
+    selectedVideoDevice,
+    selectedAudioDevice,
+    switchVideoDevice,
+    switchAudioDevice,
+    devicesLoading,
+    devicesError,
+    refreshDevices,
+    // Media controls
+    toggleVideo,
+    toggleAudio,
   };
 }

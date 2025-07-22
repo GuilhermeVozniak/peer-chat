@@ -3,7 +3,7 @@
 // then we can get the remote stream from the peer connection
 // then we can display the remote stream in a video element
 
-import { handleError } from './utils.client';
+import { handleError } from './utils';
 
 // WebRTC Configuration with fallback to Google STUN servers
 export function getWebRTCConfig(): RTCConfiguration {

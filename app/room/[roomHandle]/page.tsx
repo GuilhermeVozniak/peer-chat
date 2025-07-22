@@ -3,6 +3,8 @@
 import { Video } from '@/components/common/Video';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { DeviceSelector } from '@/components/meeting/DeviceSelector';
+import { MediaControls } from '@/components/meeting/MediaControls';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState, useRef } from 'react';
@@ -25,6 +27,20 @@ export default function MeetingRoom() {
     participantId,
     participants,
     leaveRoom,
+    // Device management
+    videoDevices,
+    audioDevices,
+    selectedVideoDevice,
+    selectedAudioDevice,
+    switchVideoDevice,
+    switchAudioDevice,
+    devicesLoading,
+    devicesError,
+    // Media controls
+    isVideoEnabled,
+    isAudioEnabled,
+    toggleVideo,
+    toggleAudio,
   } = useWebRTC(roomHandle);
 
   // Handle leaving the meeting
@@ -104,6 +120,13 @@ export default function MeetingRoom() {
       toast.error(error);
     }
   }, [error]);
+
+  // Show device errors as toasts
+  useEffect(() => {
+    if (devicesError) {
+      toast.error(`Device error: ${devicesError}`);
+    }
+  }, [devicesError]);
 
   // Show loading state while verifying room
   if (roomExists === null) {
@@ -201,7 +224,14 @@ export default function MeetingRoom() {
           <div className='flex h-full items-center justify-center'>
             <div className='w-full max-w-4xl'>
               <div className='bg-muted relative aspect-video w-full overflow-hidden rounded-lg shadow-lg'>
-                <Video id={participantId} stream={localStream} />
+                <Video
+                  id={participantId}
+                  stream={localStream}
+                  isVideoEnabled={isVideoEnabled}
+                  isAudioEnabled={isAudioEnabled}
+                  showControls={true}
+                  isLocal={true}
+                />
                 <div className='absolute bottom-4 left-4 rounded bg-black/70 px-3 py-1 text-white'>
                   {currentUserName}
                 </div>
@@ -225,7 +255,14 @@ export default function MeetingRoom() {
             >
               {/* Local video */}
               <div className='bg-muted relative overflow-hidden rounded-lg shadow-lg'>
-                <Video id={participantId} stream={localStream} />
+                <Video
+                  id={participantId}
+                  stream={localStream}
+                  isVideoEnabled={isVideoEnabled}
+                  isAudioEnabled={isAudioEnabled}
+                  showControls={true}
+                  isLocal={true}
+                />
                 <div className='absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white'>
                   {currentUserName}
                 </div>
@@ -242,6 +279,8 @@ export default function MeetingRoom() {
                     <Video
                       id={remoteStream.participantId}
                       stream={remoteStream.stream}
+                      showControls={true}
+                      isLocal={false}
                     />
                     <div className='absolute bottom-2 left-2 rounded bg-black/70 px-2 py-1 text-xs font-medium text-white'>
                       {getParticipantName(remoteStream.participantId)}
@@ -267,7 +306,37 @@ export default function MeetingRoom() {
 
       {/* Bottom Controls */}
       <footer className='bg-card flex-shrink-0 border-t p-4'>
-        <div className='flex items-center justify-center'>
+        <div className='flex items-center justify-between'>
+          {/* Left side controls */}
+          <div className='flex items-center space-x-4'>
+            {/* Media Controls */}
+            <MediaControls
+              isVideoEnabled={isVideoEnabled}
+              isAudioEnabled={isAudioEnabled}
+              onToggleVideo={toggleVideo}
+              onToggleAudio={toggleAudio}
+              disabled={!localStream}
+            />
+
+            {/* Device Controls */}
+            <div className='bg-border h-6 w-px'></div>
+            <DeviceSelector
+              devices={videoDevices}
+              selectedDevice={selectedVideoDevice}
+              onDeviceChange={switchVideoDevice}
+              type='video'
+              disabled={devicesLoading}
+            />
+            <DeviceSelector
+              devices={audioDevices}
+              selectedDevice={selectedAudioDevice}
+              onDeviceChange={switchAudioDevice}
+              type='audio'
+              disabled={devicesLoading}
+            />
+          </div>
+
+          {/* Leave Meeting Button */}
           <Button
             onClick={handleLeaveMeeting}
             variant='destructive'
