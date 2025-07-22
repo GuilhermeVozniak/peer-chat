@@ -97,14 +97,14 @@ function handleJoinRoom(
 ): void {
   if (message.type !== 'join-room') return;
 
-  const { participantId, roomHandle, name } = message;
+  const { participantId, roomHandle, name, isCreator } = message;
 
   if (!participantId || !roomHandle) {
     sendError(ws, 'Missing participantId or roomHandle');
     return;
   }
 
-  roomManager?.joinRoom(ws, roomHandle, participantId, name);
+  roomManager?.joinRoom(ws, roomHandle, participantId, name, isCreator);
 }
 
 // Handle room leaving

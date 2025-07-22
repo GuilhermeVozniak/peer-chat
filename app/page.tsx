@@ -64,6 +64,9 @@ export default function Home() {
           sessionStorage.removeItem('userName');
         }
 
+        // Mark user as room creator
+        sessionStorage.setItem('isRoomCreator', 'true');
+
         await createRoomAction(data.roomHandle, data.name);
       } catch (error) {
         if (
@@ -85,6 +88,9 @@ export default function Home() {
         } else {
           sessionStorage.removeItem('userName');
         }
+
+        // Clear any creator flag since this is joining
+        sessionStorage.removeItem('isRoomCreator');
 
         await joinRoomAction(data.roomHandle, data.name);
       } catch (error) {

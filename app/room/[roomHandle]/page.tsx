@@ -1,10 +1,11 @@
 'use client';
 
 import { Video } from '@/components/common/Video';
+import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { useWebRTC } from '@/hooks/useWebRTC';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { toast } from 'sonner';
 
 export default function MeetingRoom() {
@@ -13,6 +14,7 @@ export default function MeetingRoom() {
   const params = useParams();
   const router = useRouter();
   const roomHandle = params.roomHandle as string;
+  const leavingRef = useRef(false);
 
   // Use WebRTC hook for video conferencing
   const {
@@ -22,7 +24,25 @@ export default function MeetingRoom() {
     error,
     participantId,
     participants,
+    leaveRoom,
   } = useWebRTC(roomHandle);
+
+  // Handle leaving the meeting
+  const handleLeaveMeeting = () => {
+    if (leavingRef.current) return; // Prevent double-leave
+    leavingRef.current = true;
+
+    try {
+      // Use the proper leave function from the hook
+      leaveRoom();
+
+      // Redirect to home
+      router.push('/');
+    } catch (_error) {
+      // Fallback: just redirect
+      router.push('/');
+    }
+  };
 
   // Get current user's name from sessionStorage
   useEffect(() => {
@@ -244,6 +264,20 @@ export default function MeetingRoom() {
           </div>
         )}
       </main>
+
+      {/* Bottom Controls */}
+      <footer className='bg-card flex-shrink-0 border-t p-4'>
+        <div className='flex items-center justify-center'>
+          <Button
+            onClick={handleLeaveMeeting}
+            variant='destructive'
+            size='lg'
+            className='px-8'
+          >
+            Leave Meeting
+          </Button>
+        </div>
+      </footer>
     </div>
   );
 }

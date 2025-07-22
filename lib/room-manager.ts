@@ -7,6 +7,7 @@ import type {
   ParticipantLeftMessage,
   Room,
   RoomStateMessage,
+  RoomTerminatedMessage,
   WebSocketMessage,
 } from '../types/websocket';
 
@@ -20,6 +21,7 @@ export class RoomManager {
     roomHandle: string,
     participantId: string,
     name?: string,
+    isCreator?: boolean,
   ): void {
     try {
       // Get or create room
@@ -27,12 +29,18 @@ export class RoomManager {
         this.rooms.set(roomHandle, {
           handle: roomHandle,
           participants: new Map(),
+          createdBy: isCreator ? participantId : undefined,
           createdAt: new Date(),
         });
       }
 
       const room = this.rooms.get(roomHandle);
       if (!room) return;
+
+      // If this is the first participant and no creator is set, make them the creator
+      if (!room.createdBy && room.participants.size === 0) {
+        room.createdBy = participantId;
+      }
 
       // Generate name if not provided (Guest 1, Guest 2, etc.)
       let participantName = name?.trim();
@@ -57,7 +65,9 @@ export class RoomManager {
       ws.isAlive = true;
 
       console.log(
-        `Participant ${participantId} (${participantName}) joined room ${roomHandle}`,
+        `Participant ${participantId} (${participantName}) joined room ${roomHandle}${
+          room.createdBy === participantId ? ' as creator' : ''
+        }`,
       );
 
       // Send current room state to the new participant
@@ -122,27 +132,76 @@ export class RoomManager {
       const room = this.rooms.get(roomHandle);
       if (!room) return;
 
+      const isCreator = room.createdBy === participantId;
+
       // Remove participant from room
       room.participants.delete(participantId);
       this.participants.delete(participantId);
 
-      console.log(`Participant ${participantId} left room ${roomHandle}`);
+      console.log(
+        `Participant ${participantId} left room ${roomHandle}${
+          isCreator ? ' (was creator)' : ''
+        }`,
+      );
 
-      // Notify other participants about the departure
-      this.broadcastToRoom(roomHandle, {
-        type: 'participant-left',
-        participantId,
-        roomHandle,
-        timestamp: Date.now(),
-      } as ParticipantLeftMessage);
+      // If creator left, terminate the room for everyone
+      if (isCreator) {
+        this.terminateRoom(roomHandle, 'creator-left');
+      } else {
+        // Notify other participants about the departure
+        this.broadcastToRoom(roomHandle, {
+          type: 'participant-left',
+          participantId,
+          roomHandle,
+          timestamp: Date.now(),
+        } as ParticipantLeftMessage);
 
-      // Clean up empty rooms
-      if (room.participants.size === 0) {
-        this.rooms.delete(roomHandle);
-        console.log(`Room ${roomHandle} deleted (no participants)`);
+        // Clean up empty rooms
+        if (room.participants.size === 0) {
+          this.rooms.delete(roomHandle);
+          console.log(`Room ${roomHandle} deleted (no participants)`);
+        }
       }
     } catch (error) {
       console.error('Error leaving room:', error);
+    }
+  }
+
+  // Terminate a room and notify all participants
+  private terminateRoom(
+    roomHandle: string,
+    reason: 'creator-left' | 'room-closed',
+  ): void {
+    try {
+      const room = this.rooms.get(roomHandle);
+      if (!room) return;
+
+      console.log(`Terminating room ${roomHandle}: ${reason}`);
+
+      // Notify all participants that the room is terminated
+      const terminationMessage: RoomTerminatedMessage = {
+        type: 'room-terminated',
+        participantId: 'system',
+        roomHandle,
+        timestamp: Date.now(),
+        reason,
+      };
+
+      // Send termination message to all participants in the room
+      room.participants.forEach((participant) => {
+        const ws = this.participants.get(participant.id);
+        if (ws?.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify(terminationMessage));
+        }
+        // Remove participant from tracking
+        this.participants.delete(participant.id);
+      });
+
+      // Remove the room
+      this.rooms.delete(roomHandle);
+      console.log(`Room ${roomHandle} terminated and cleaned up`);
+    } catch (error) {
+      console.error('Error terminating room:', error);
     }
   }
 

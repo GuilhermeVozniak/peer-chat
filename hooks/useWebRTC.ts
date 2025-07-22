@@ -39,6 +39,7 @@ export interface InternalWebSocketMessage {
   answer?: RTCSessionDescriptionInit;
   candidate?: RTCIceCandidateInit;
   error?: string;
+  reason?: string; // Added for room-terminated message
 }
 
 export function useWebRTC(roomHandle: string) {
@@ -227,9 +228,13 @@ export function useWebRTC(roomHandle: string) {
 
     participantIdRef.current = generateParticipantId();
 
-    // Get user name from sessionStorage
+    // Get user name and creator status from sessionStorage
     const userName =
       typeof window !== 'undefined' ? sessionStorage.getItem('userName') : null;
+    const isCreator =
+      typeof window !== 'undefined'
+        ? sessionStorage.getItem('isRoomCreator') === 'true'
+        : false;
 
     // Connect to WebSocket server on port 8080
     const ws = new WebSocket('ws://localhost:8080');
@@ -239,13 +244,14 @@ export function useWebRTC(roomHandle: string) {
       console.log('WebSocket connected');
       setState((prev) => ({ ...prev, isConnected: true, error: null }));
 
-      // Join the room with optional name
+      // Join the room with optional name and creator status
       const joinMessage: {
         type: 'join-room';
         participantId: string;
         roomHandle: string;
         timestamp: number;
         name?: string;
+        isCreator?: boolean;
       } = {
         type: 'join-room',
         participantId: participantIdRef.current,
@@ -256,6 +262,11 @@ export function useWebRTC(roomHandle: string) {
       // Add name to message if available
       if (userName?.trim()) {
         joinMessage.name = userName.trim();
+      }
+
+      // Add creator flag if this user created the room
+      if (isCreator) {
+        joinMessage.isCreator = true;
       }
 
       ws.send(JSON.stringify(joinMessage));
@@ -356,12 +367,70 @@ export function useWebRTC(roomHandle: string) {
           }));
           break;
 
+        case 'room-terminated':
+          console.log('Room was terminated:', message.reason);
+          setState((prev) => ({
+            ...prev,
+            error: 'Room has been terminated',
+          }));
+
+          // Close WebSocket connection
+          if (wsRef.current?.readyState === WebSocket.OPEN) {
+            wsRef.current.close();
+          }
+
+          // Redirect to termination page with reason
+          if (typeof window !== 'undefined') {
+            const reason = message.reason ?? 'unknown';
+            window.location.href = `/room-terminated?reason=${String(reason)}`;
+          }
+          break;
+
         default:
           console.warn('Unknown message type:', message.type);
       }
     },
     [createOffer, handleOffer, handleAnswer, handleIceCandidate],
   );
+
+  // Leave room function
+  const leaveRoom = useCallback(() => {
+    try {
+      // Send leave message if connected
+      if (wsRef.current?.readyState === WebSocket.OPEN) {
+        wsRef.current.send(
+          JSON.stringify({
+            type: 'leave-room',
+            participantId: participantIdRef.current,
+            roomHandle,
+            timestamp: Date.now(),
+          }),
+        );
+      }
+
+      // Close WebSocket connection
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+
+      // Stop local stream
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+
+      // Close all peer connections
+      peerConnectionsRef.current.forEach((peerConnection) => {
+        closePeerConnection(peerConnection);
+      });
+      peerConnectionsRef.current.clear();
+
+      console.log('Left room successfully');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+    }
+  }, [roomHandle]);
 
   // Initialize everything when component mounts
   useEffect(() => {
@@ -383,36 +452,13 @@ export function useWebRTC(roomHandle: string) {
 
     // Cleanup on unmount
     return () => {
-      // Close all peer connections
-      peerConnectionsRef.current.forEach((peerConnection) => {
-        closePeerConnection(peerConnection);
-      });
-      peerConnectionsRef.current.clear();
-
-      // Close WebSocket
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(
-          JSON.stringify({
-            type: 'leave-room',
-            participantId: participantIdRef.current,
-            roomHandle,
-            timestamp: Date.now(),
-          }),
-        );
-        wsRef.current.close();
-      }
-
-      // Stop local stream
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          track.stop();
-        });
-      }
+      leaveRoom();
     };
-  }, [roomHandle, initializeLocalStream, initializeWebSocket]);
+  }, [roomHandle, initializeLocalStream, initializeWebSocket, leaveRoom]);
 
   return {
     ...state,
     participantId: participantIdRef.current,
+    leaveRoom,
   };
 }
