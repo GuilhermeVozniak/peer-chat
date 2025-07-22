@@ -115,11 +115,6 @@ export default function MeetingRoom() {
 
   return (
     <div className='bg-background flex max-h-screen min-h-screen flex-col overflow-hidden'>
-      {/* Theme Toggle */}
-      <div className='absolute top-4 right-4 z-50'>
-        <ThemeToggle />
-      </div>
-
       {/* Header */}
       <header className='bg-card flex-shrink-0 border-b p-4'>
         <div className='flex items-center justify-between'>
@@ -132,8 +127,9 @@ export default function MeetingRoom() {
               {totalParticipants !== 1 ? 's' : ''}
             </p>
           </div>
-          <div className='flex items-center space-x-4 text-sm'>
-            <div className='flex items-center space-x-2'>
+          <div className='flex items-center space-x-4'>
+            {/* Connected Status */}
+            <div className='flex items-center space-x-2 text-sm'>
               <div
                 className={`h-3 w-3 rounded-full ${
                   isConnected ? 'bg-green-500' : 'bg-destructive'
@@ -143,6 +139,8 @@ export default function MeetingRoom() {
                 {isConnected ? 'Connected' : 'Disconnected'}
               </span>
             </div>
+            {/* Theme Toggle */}
+            <ThemeToggle />
           </div>
         </div>
       </header>
